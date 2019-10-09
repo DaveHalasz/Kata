@@ -1,7 +1,9 @@
-#include <iostream>;
+#include <iostream>
+using namespace std ;
+
 
 int main( int argc, char *argv[] )
 {
-  cout << "StringKata\n";
+  cout << "StringKata" << endl;
   return 0;
 }

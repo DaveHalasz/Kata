@@ -1,1 +1,4 @@
 String Calculator Kata in C
+
+To compile,
+	g++ StringKata.cpp -o StringKata
