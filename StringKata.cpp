@@ -2,8 +2,16 @@
 #include <sstream>
 #include <string>
 #include <string.h>
+#include <stdlib.h>
+#include <exception>
 using namespace std ;
 
+char invalidTmp[31];
+struct AddException : public exception {
+	const char * what() const throw() {
+		return "Add Exception";
+	}
+};
 
 int Add(string numbers);
 
@@ -11,8 +19,11 @@ char GetDelimeter(string numbers);
 
 // Add the numbers which are contained in the string
 int Add(string numbers)
-{
+{	
 	int Total = 0;
+	
+	stringstream invalid;
+	int errorFound = 0;
 	
 	stringstream ss;
 	stringstream ss2;
@@ -36,11 +47,28 @@ int Add(string numbers)
 		{
 			// Check for an integer
 			if (stringstream(temp) >> found )
-				Total += found;
+			{
+				// Check for an invalid negative number
+				if ( found < 0 )
+				{
+					errorFound = 1;
+					invalid << found;
+					invalid << " ";
+				}
+				else
+					Total += found;
+			}
 		}
 		ss2.clear();
 	}
 	
+	// Check if we had an error. If yes, throw an exception
+	if ( errorFound )
+	{
+		// Copy the invalid values into const char memory
+		strncpy( invalidTmp, invalid.str().c_str(), 30);
+		throw invalidTmp;
+	}
 	return Total;
 }
 
@@ -79,24 +107,29 @@ int main( int argc, char *argv[] )
 	
 	// Test cases for step 4
 	string Test4A = "//;\n1;7";
+	
+	// Test cases for step 5
+	string Test5A = "1,-7,3,-8";
+	
+	struct TestStrStruct {
+		string TestDescription;
+		string TestStr;
+	};
+	TestStrStruct TestList[] = { {"NullStr ", NullStr}, {"TestStr ", TestStr}, {"Test0 ", Test0}, {"Test3A ", Test3A}, {"Test3B ", Test3B}, {"Test4A ", Test4A}, {"Test5A ", Test5A} };
 
-	// Run the first two steps unit tests
-	cout << "NullStr ";
-	cout << Add(NullStr) << endl;
-	cout << "TestStr ";
-	cout << Add(TestStr) << endl;
-	cout << "Test0 ";
-	cout << Add(Test0) << endl;
-	
-	// Run the step 3 unit tests
-	cout << "Test3A ";
-	cout << Add(Test3A) << endl;
-	cout << "Test3B ";
-	cout << Add(Test3B) << endl;
-	
-	// Run the step 4 unit tests
-	cout << "Test4A ";
-	cout << Add(Test4A) << endl;
+
+	// Run the unit tests
+	int i;
+	for ( i=0; i < (sizeof(TestList)/sizeof(TestStrStruct)); i++)
+	{
+		try {
+			cout << TestList[i].TestDescription;
+			cout << Add(TestList[i].TestStr) << endl;
+		} catch (const char* msg) {
+			cout << "Add() error\n  Invalid input is ";
+			cout << msg << endl;
+		}
+	};
 	
 	return 0;
 }
