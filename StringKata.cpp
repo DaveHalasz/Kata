@@ -21,6 +21,7 @@ char GetDelimeter(string numbers);
 int Add(string numbers)
 {	
 	int Total = 0;
+	int inputMax = 1000;
 	
 	stringstream invalid;
 	int errorFound = 0;
@@ -56,7 +57,12 @@ int Add(string numbers)
 					invalid << " ";
 				}
 				else
-					Total += found;
+				{
+					// Check for input being too large
+					// Step 6 indicates to skip the value, if too large
+					if ( found <= inputMax )
+						Total += found;
+				}
 			}
 		}
 		ss2.clear();
@@ -111,11 +117,15 @@ int main( int argc, char *argv[] )
 	// Test cases for step 5
 	string Test5A = "1,-7,3,-8";
 	
+	// Test case for step 6
+	string Test6A = "1001, 2";
+	string Test6B = "2, 1000";
+	
 	struct TestStrStruct {
 		string TestDescription;
 		string TestStr;
 	};
-	TestStrStruct TestList[] = { {"NullStr ", NullStr}, {"TestStr ", TestStr}, {"Test0 ", Test0}, {"Test3A ", Test3A}, {"Test3B ", Test3B}, {"Test4A ", Test4A}, {"Test5A ", Test5A} };
+	TestStrStruct TestList[] = { {"NullStr ", NullStr}, {"TestStr ", TestStr}, {"Test0 ", Test0}, {"Test3A ", Test3A}, {"Test3B ", Test3B}, {"Test4A ", Test4A}, {"Test5A ", Test5A}, {"Test6A ", Test6A}, {"Test6B ", Test6B} };
 
 
 	// Run the unit tests
