@@ -15,7 +15,7 @@ struct AddException : public exception {
 
 int Add(string numbers);
 
-char GetDelimeter(string numbers);
+string GetDelimeter(string numbers);
 
 // Add the numbers which are contained in the string
 int Add(string numbers)
@@ -27,11 +27,10 @@ int Add(string numbers)
 	int errorFound = 0;
 	
 	stringstream ss;
-	stringstream ss2;
 	ss << numbers;
 	
 	// Get the delimeter from the beginning of the string
-	char delim = GetDelimeter(numbers);
+	string delim = GetDelimeter(numbers);
 	
 	// Continue until done with the input string
 	// First get a line, second pars the line with the delimeter
@@ -40,11 +39,24 @@ int Add(string numbers)
 	int found;
 	while (getline(ss, templine))
 	{
-		// Now parse through the line
-		ss2 << templine;
-	
 		// Parse the line with the delimeter
-		while (getline(ss2, temp, delim))
+		temp = "";
+		int position = 0;
+		int endIsFound = 0;
+		int delimPos = templine.find(delim);
+		if ( delimPos >=0 )
+			temp = templine.substr(position, delimPos);
+		else
+		{
+			temp = templine.substr(position);
+			endIsFound = 1;			
+		}
+
+
+		// endIsFound becomes true when found he end of the string
+		// Done becomes true when finished processing up to the end of the string
+		int Done = 0;
+		while ( !Done )
 		{
 			// Check for an integer
 			if (stringstream(temp) >> found )
@@ -64,8 +76,26 @@ int Add(string numbers)
 						Total += found;
 				}
 			}
+			
+			// Check if finished processing
+			if ( endIsFound )
+				Done = 1;
+			else
+			{
+				temp = "";
+				position = delimPos+delim.size();
+				delimPos = templine.find(delim,delimPos+1);
+
+				// Check if didn't find the delimeter
+				if ( delimPos >= 0 )
+					temp = templine.substr(position, delimPos);
+				else
+				{
+					temp = templine.substr(position);
+					endIsFound = 1;				
+				}
+			}
 		}
-		ss2.clear();
 	}
 	
 	// Check if we had an error. If yes, throw an exception
@@ -81,10 +111,14 @@ int Add(string numbers)
 // Get the delimeter
 // If there is no delimeter defined then default is comma
 // Delimeter starts with // and end with new line
-char GetDelimeter(string numbers)
+string GetDelimeter(string numbers)
 {
 	string delimStart = "//";
-	char delim = ',';
+	char beginDelimStr = '[';
+	string endDelimStr = "]";
+	int endDelimPos;
+	string delim = ",";
+	char tempChar;
 
 	// Check for the delimeter markings at the begiining of the string
 	if ( !strncmp(numbers.c_str(), delimStart.c_str(), delimStart.size()) )
@@ -92,7 +126,23 @@ char GetDelimeter(string numbers)
 		// Check that the string isn't limited to the delimStart
 		// If there is another character then it is the delimeter
 		if ( numbers.size() > delimStart.size() )
-			delim = numbers.at(delimStart.size());
+		{
+			tempChar = numbers.at(delimStart.size());
+			// Check if the delimeter will be a string. If yes, begins with a [
+			if (tempChar == beginDelimStr)
+			{
+				// Handle string delimeter input
+				endDelimPos = numbers.find(endDelimStr);
+				// Check if found the end of the line instead of the end delimeter
+				if ( endDelimPos <= 0)
+					delim = numbers.substr(3);
+				else
+					delim = numbers.substr(3, (endDelimPos-3));
+			}
+			else
+				delim = tempChar;
+			
+		}
 		
 	}
 	return delim;
@@ -121,11 +171,23 @@ int main( int argc, char *argv[] )
 	string Test6A = "1001, 2";
 	string Test6B = "2, 1000";
 	
+	// Test case for step 7
+	string Test7A = "//[***]\n1***2***3";
+	
 	struct TestStrStruct {
 		string TestDescription;
 		string TestStr;
 	};
-	TestStrStruct TestList[] = { {"NullStr ", NullStr}, {"TestStr ", TestStr}, {"Test0 ", Test0}, {"Test3A ", Test3A}, {"Test3B ", Test3B}, {"Test4A ", Test4A}, {"Test5A ", Test5A}, {"Test6A ", Test6A}, {"Test6B ", Test6B} };
+	TestStrStruct TestList[] = { {"NullStr ", NullStr}, 
+								{"TestStr ", TestStr}, 
+								{"Test0 ", Test0}, 
+								{"Test3A ", Test3A}, 
+								{"Test3B ", Test3B}, 
+								{"Test4A ", Test4A}, 
+								{"Test5A ", Test5A}, 
+								{"Test6A ", Test6A}, 
+								{"Test6B ", Test6B},
+								{"Test7A ", Test7A } };
 
 
 	// Run the unit tests
