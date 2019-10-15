@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <exception>
+#include <vector>
 using namespace std ;
 
 char invalidTmp[31];
@@ -15,7 +16,12 @@ struct AddException : public exception {
 
 int Add(string numbers);
 
-string GetDelimeter(string numbers);
+// Supporting function
+// Parse the delimeters into delim
+// Return the location past the delimeters
+int GetDelimeter(string numbers, vector<string> &delim);
+// When processing the numbers, provide the index to the next delimeter being used
+int  GetDelimIndex(string numbers, vector<string> &delim, int offset);
 
 // Add the numbers which are contained in the string
 int Add(string numbers)
@@ -27,10 +33,15 @@ int Add(string numbers)
 	int errorFound = 0;
 	
 	stringstream ss;
-	ss << numbers;
+	//ss << numbers;
 	
 	// Get the delimeter from the beginning of the string
-	string delim = GetDelimeter(numbers);
+	vector<string> delim;
+	int endDelimPos = GetDelimeter(numbers, delim);
+		
+	// remove the delimeters
+	numbers.erase(0, endDelimPos);
+	ss << numbers;
 	
 	// Continue until done with the input string
 	// First get a line, second pars the line with the delimeter
@@ -43,7 +54,8 @@ int Add(string numbers)
 		temp = "";
 		int position = 0;
 		int endIsFound = 0;
-		int delimPos = templine.find(delim);
+		int delimIndex = GetDelimIndex(templine,delim,0);
+		int delimPos = templine.find(delim[delimIndex]);
 		if ( delimPos >=0 )
 			temp = templine.substr(position, delimPos);
 		else
@@ -53,7 +65,7 @@ int Add(string numbers)
 		}
 
 
-		// endIsFound becomes true when found he end of the string
+		// endIsFound becomes true when found the end of the string
 		// Done becomes true when finished processing up to the end of the string
 		int Done = 0;
 		while ( !Done )
@@ -82,9 +94,14 @@ int Add(string numbers)
 				Done = 1;
 			else
 			{
+				// Looking for the next delimeter
 				temp = "";
-				position = delimPos+delim.size();
-				delimPos = templine.find(delim,delimPos+1);
+				position = delimPos+delim[delimIndex].size();
+				delimIndex = GetDelimIndex(templine,delim,delimPos+1);
+				if ( delimIndex < 0 ) 
+					delimPos = delimIndex;		// Not found
+				else
+					delimPos = templine.find(delim[delimIndex],delimPos+1);
 
 				// Check if didn't find the delimeter
 				if ( delimPos >= 0 )
@@ -111,18 +128,23 @@ int Add(string numbers)
 // Get the delimeter
 // If there is no delimeter defined then default is comma
 // Delimeter starts with // and end with new line
-string GetDelimeter(string numbers)
+// Return the location past the delimeters
+int GetDelimeter(string numbers, vector<string> &delim)
 {
 	string delimStart = "//";
 	char beginDelimStr = '[';
 	string endDelimStr = "]";
 	int endDelimPos;
-	string delim = ",";
+	int beginDelimPos = 3;	// If multiple delimeters then after "//[" is the beginning
+	string tempdelim = ",";
 	char tempChar;
+	int delimHasBeenSet = 0;
+	int FinishedWithDelimPos = 0;
 
-	// Check for the delimeter markings at the begiining of the string
+	// Check for the delimeter markings at the begining of the string. The "//".
 	if ( !strncmp(numbers.c_str(), delimStart.c_str(), delimStart.size()) )
 	{
+		FinishedWithDelimPos = 4;	// Single delimeter, without []
 		// Check that the string isn't limited to the delimStart
 		// If there is another character then it is the delimeter
 		if ( numbers.size() > delimStart.size() )
@@ -131,21 +153,104 @@ string GetDelimeter(string numbers)
 			// Check if the delimeter will be a string. If yes, begins with a [
 			if (tempChar == beginDelimStr)
 			{
-				// Handle string delimeter input
-				endDelimPos = numbers.find(endDelimStr);
-				// Check if found the end of the line instead of the end delimeter
-				if ( endDelimPos <= 0)
-					delim = numbers.substr(3);
-				else
-					delim = numbers.substr(3, (endDelimPos-3));
+				// Done gets set when all of the multiple delimeters have been handled
+				int Done = 0;
+				while (!Done)
+				{
+					// Handle string delimeter input
+					endDelimPos = numbers.find(endDelimStr,beginDelimPos);
+					// Check if found the end of the line instead of the end delimeter
+					if ( endDelimPos <= 0)
+					{
+						tempdelim = numbers.substr(beginDelimPos);
+						Done = 1;
+					}
+					else
+					{
+						tempdelim = numbers.substr(beginDelimPos, (endDelimPos-beginDelimPos));
+						FinishedWithDelimPos = endDelimPos+2;
+					}
+						
+						
+						
+					// Set the delimeter that was found
+					delim.push_back(tempdelim);
+					delimHasBeenSet = 1;
+						
+					// Check if there is another delimeter string
+					// If not then we are done finding the delimeters
+					// Check if there is room for another delimeter
+					// The endDelimPos+2 is position of x in "//[d][x"
+					if (numbers.size() > endDelimPos+2)
+					{
+						// Check if found the begining of delimeter again
+						tempChar = numbers.at(endDelimPos+1);
+						if (tempChar == beginDelimStr)
+						{
+							// Yes, there is another delimeter
+							// Setup for next time through the while loop
+							beginDelimPos = endDelimPos+2;
+						}
+						else
+							Done = 1;
+					}
+					else
+					{
+						Done = 1;
+					}
+				}
 			}
 			else
-				delim = tempChar;
-			
-		}
+			{
+				// There is only one delimeter and it is not enclosed in []
+				tempdelim = tempChar;
+			}
 		
+		}
+
 	}
-	return delim;
+	
+	// Handle saving the delimeter in the cases of a single delimeter
+	if (!delimHasBeenSet)
+		delim.push_back(tempdelim);
+
+	return FinishedWithDelimPos;
+}
+
+// When processing the numbers, provide the index to the next delimeter being used
+int  GetDelimIndex(string numbers, vector<string> &delim, int offset)
+{
+	int templowest = -1;
+	int templowestIndex = -1;
+	int i = 0;
+	int foundOne = 0;
+	
+	// Find the 
+	while ( i < delim.size() )
+	{
+		int pos = numbers.find(delim[i], offset);
+		if ( pos >= 0 )
+		{
+			foundOne = 1;
+			if ( templowest < 0 )
+			{
+				templowest = pos;
+				templowestIndex = i;
+			}
+			else
+			{
+				if ( pos < templowest )
+				{
+					templowest = pos;
+					templowestIndex = i;
+				}
+			}
+		}
+		i++;
+	}
+	
+	if ( !foundOne ) return -1;
+	else return templowestIndex;
 }
 
 int main( int argc, char *argv[] )
@@ -174,6 +279,10 @@ int main( int argc, char *argv[] )
 	// Test case for step 7
 	string Test7A = "//[***]\n1***2***3";
 	
+	// Test case for step 8
+	string Test8A = "//[*][%]\n1*2%3";
+	string Test8B = "//[**][%%]\n4**5%%6";
+	
 	struct TestStrStruct {
 		string TestDescription;
 		string TestStr;
@@ -187,8 +296,11 @@ int main( int argc, char *argv[] )
 								{"Test5A ", Test5A}, 
 								{"Test6A ", Test6A}, 
 								{"Test6B ", Test6B},
-								{"Test7A ", Test7A } };
+								{"Test7A ", Test7A},
+								{"Test8A ", Test8A},
+								{"Test8B ", Test8B} };
 
+	TestStrStruct TestListA[] = { {"TestStr ", TestStr } };
 
 	// Run the unit tests
 	int i;
@@ -196,10 +308,10 @@ int main( int argc, char *argv[] )
 	{
 		try {
 			cout << TestList[i].TestDescription;
-			cout << Add(TestList[i].TestStr) << endl;
+			cout << Add(TestList[i].TestStr) << endl << endl;
 		} catch (const char* msg) {
 			cout << "Add() error\n  Invalid input is ";
-			cout << msg << endl;
+			cout << msg << endl << endl;
 		}
 	};
 	
